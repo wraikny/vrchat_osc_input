@@ -1,5 +1,5 @@
 use std::{convert::From};
-use async_std::{channel::Receiver, net::{Ipv4Addr, SocketAddrV4, UdpSocket}};
+use async_std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 
 use rosc::{OscMessage, OscType, OscPacket};
 
@@ -27,30 +27,25 @@ impl From<Msg> for OscMessage {
 }
 
 pub struct Client {
-    receiver: Receiver<Msg>,
     udp_client: UdpSocket,
     to_addr: SocketAddrV4,
 }
 
 impl Client {
-    pub async fn new(receiver: Receiver<Msg>) -> Self {
+    pub async fn new() -> Self {
         Self {
-            receiver,
             udp_client: UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 9001)).await.unwrap(),
             to_addr: SocketAddrV4::new(Ipv4Addr::LOCALHOST, 9000),
         }
     }
 
-    pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        loop {
-            if let Ok(msg) = self.receiver.recv().await {
-                let osc_msg = msg.into();
-                let msg_buf = rosc::encoder::encode(&OscPacket::Message(osc_msg))?;
+    pub async fn send_msg(&self, msg: Msg) -> Result<(), Box<dyn std::error::Error>> {
+        let osc_msg = msg.into();
+        let msg_buf = rosc::encoder::encode(&OscPacket::Message(osc_msg))?;
 
-                
-                self.udp_client.send_to(&msg_buf, self.to_addr).await?;
-            }
-        }
+        self.udp_client.send_to(&msg_buf, self.to_addr).await?;
+
+        Ok(())
     }
 }
 

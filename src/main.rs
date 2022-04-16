@@ -10,14 +10,18 @@ mod osc;
 use async_std::{channel, task};
 
 fn main() -> Result<(), String> {
-    let (send, recv) = channel::unbounded();
+    let (sender, receiver) = channel::unbounded();
 
-    _ = task::spawn(async {
-        let client = osc::Client::new(recv).await;
-        client.run().await.unwrap_or_else(|e| panic!("{}", e))
+    let app = my_app::MyApp::new(sender);
+
+    _ = task::spawn(async move {
+        let client = osc::Client::new().await;
+        if let Ok(msg) = receiver.recv().await {
+            client.send_msg(msg).await.unwrap_or_else(|e| panic!("{}", e));
+        }
     });
 
-    let app = my_app::MyApp::new(send);
+    
     let options = my_app::create_options();
     eframe::run_native(Box::new(app), options);
 }

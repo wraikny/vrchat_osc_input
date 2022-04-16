@@ -1,5 +1,5 @@
 use eframe::{egui, epi};
-use async_std::{channel::Sender, task};
+use async_std::channel::Sender;
 
 use crate::osc::Msg;
 
@@ -11,15 +11,17 @@ pub fn create_options() -> eframe::NativeOptions {
     }
 }
 
+type MySender = Sender<Msg>;
+
 #[derive(Debug)]
 pub struct MyApp {
-    sender: Sender<Msg>,
+    sender: MySender,
     move_forward: bool,
     run: bool,
 }
 
 impl MyApp {
-    pub fn new(sender: Sender<Msg>) -> Self {
+    pub fn new(sender: MySender) -> Self {
         Self {
             sender,
             move_forward: false,
@@ -31,7 +33,7 @@ impl MyApp {
 fn osc_toggle(
     ui: &mut egui::Ui,
     label: impl Into<egui::WidgetText>,
-    sender: &Sender<Msg>,
+    sender: &MySender,
     current_value: &mut bool,
     to_msg: impl FnOnce(bool) -> Msg
 ) {
@@ -41,10 +43,7 @@ fn osc_toggle(
     if clicked {
         *current_value = !current;
         let msg = to_msg(!current);
-        let sender = sender.clone();
-        _ = task::spawn(async move {
-            sender.send(msg).await.unwrap()
-        });
+        sender.try_send(msg).unwrap()
     }
 }
 
@@ -61,21 +60,5 @@ impl epi::App for MyApp {
             osc_toggle(ui, "Run", &self.sender, &mut self.run, Msg::Run);
             osc_toggle(ui, "MoveForward", &self.sender, &mut self.move_forward, Msg::MoveForward);
         });
-    }
-
-    fn on_exit(&mut self) {
-        let msgs = vec![
-            (self.run, Msg::Run(false)),
-            (self.move_forward, Msg::MoveForward(false))
-        ];
-
-        if msgs.iter().any(|x| x.0) {
-            let sender = self.sender.clone();
-            task::block_on(async {
-                for (_, msg) in msgs.into_iter().filter(|x| x.0) {
-                    sender.send(msg).await.unwrap();
-                }
-            });
-        }
     }
 }
