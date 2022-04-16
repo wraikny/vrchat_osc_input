@@ -1,5 +1,7 @@
 # VRChat-OSC-Input
 
+![](vrchat_osc_input.png)
+
 ## Build
 
 ```sh
