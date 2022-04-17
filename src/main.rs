@@ -16,8 +16,10 @@ fn main() -> Result<(), String> {
 
     _ = task::spawn(async move {
         let client = osc::Client::new().await;
-        if let Ok(msg) = receiver.recv().await {
-            client.send_msg(msg).await.unwrap_or_else(|e| panic!("{}", e));
+        loop {
+            if let Ok(msg) = receiver.recv().await {
+                client.send_msg(msg).await.unwrap_or_else(|e| panic!("{}", e));
+            }
         }
     });
 

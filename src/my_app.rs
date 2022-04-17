@@ -5,6 +5,7 @@ use crate::osc::Msg;
 
 pub fn create_options() -> eframe::NativeOptions {
     eframe::NativeOptions {
+        always_on_top: true,
         initial_window_size: Some(egui::Vec2::new(100.0, 60.0) * 3.0),
         // resizable: false,
         ..Default::default()
